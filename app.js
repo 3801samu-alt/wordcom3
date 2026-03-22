@@ -369,15 +369,15 @@ function showRatingPhase(isMode1Wrong = false) {
 
   // Key hints
   if (state.currentMode === 1) {
-    dom.keyAgain.textContent = '[1]';
-    dom.keyHard.textContent = '[2]';
-    dom.keyGood.textContent = '[3]';
-    dom.keyEasy.textContent = '[4]';
+    dom.keyAgain.textContent = '[D/1/b/き]';
+    dom.keyHard.textContent = '[R/2/c/く]';
+    dom.keyGood.textContent = '[G/3/f/す]';
+    dom.keyEasy.textContent = '[H/4/-/せ]';
   } else {
-    dom.keyAgain.textContent = '[A]';
-    dom.keyHard.textContent = '[W]';
-    dom.keyGood.textContent = '[D]';
-    dom.keyEasy.textContent = '[F]';
+    dom.keyAgain.textContent = '[D/1/b/き]';
+    dom.keyHard.textContent = '[R/2/c/く]';
+    dom.keyGood.textContent = '[G/3/f/す]';
+    dom.keyEasy.textContent = '[H/4/-/せ]';
   }
   dom.btnRateHard.style.display = '';
   dom.btnRateEasy.style.display = '';
@@ -582,7 +582,7 @@ document.addEventListener('keydown', e => {
   const mode = state.currentMode;
   const phase = state.phase;
   const code = e.code || '';
-  const key = (e.key || '');
+  const key = (e.key || '').toLowerCase();
   const isInput = document.activeElement && document.activeElement.tagName === 'INPUT';
 
   // --- 'answered' phase: any key advances to next word ---
@@ -593,14 +593,16 @@ document.addEventListener('keydown', e => {
     return;
   }
 
-  // --- Input field active: intercept 1/4 (or （/）) for auto-rating in Mode 1 ---
+  // --- Input field active: intercept auto-rating in Mode 1 ---
   if (isInput && mode === 1 && phase === 'question') {
-    if (code === 'Digit1' || code === 'Numpad1' || key === '（') {
+    // Again (ギブアップ) : 1 または b または き または D または ( または （
+    if (code === 'Digit1' || code === 'Numpad1' || key === 'b' || key === 'ｂ' || key === 'き' || code === 'KeyD' || key === '(' || key === '（') {
       e.preventDefault();
       showAnswerThenAdvance(0);
       return;
     }
-    if (code === 'Digit4' || code === 'Numpad4' || key === '）') {
+    // Easy (強制スキップ) : 4 または - または せ または H または ) または ）
+    if (code === 'Digit4' || code === 'Numpad4' || key === '-' || key === 'ー' || key === 'せ' || code === 'KeyH' || key === ')' || key === '）') {
       e.preventDefault();
       showAnswerThenAdvance(3);
       return;
@@ -628,18 +630,14 @@ document.addEventListener('keydown', e => {
     let isWrong = false;
 
     if (mode === 3) {
-      if (code === 'KeyA') { grade = 0; isWrong = true; }
-      else if (code === 'KeyD') grade = 2;
-    } else if (mode === 2) {
-      if (code === 'KeyA') grade = 0;
-      else if (code === 'KeyW') grade = 1;
-      else if (code === 'KeyD') grade = 2;
-      else if (code === 'KeyF') grade = 3;
-    } else if (mode === 1) {
-      if (code === 'Digit1' || code === 'Numpad1') grade = 0;
-      else if (code === 'Digit2' || code === 'Numpad2') grade = 1;
-      else if (code === 'Digit3' || code === 'Numpad3') grade = 2;
-      else if (code === 'Digit4' || code === 'Numpad4') grade = 3;
+      if (key === 'b' || key === 'ｂ' || key === 'き' || code === 'ArrowLeft' || code === 'KeyD') { grade = 0; isWrong = true; }
+      else if (key === 'f' || key === 'ｆ' || key === 'す' || code === 'ArrowRight' || code === 'KeyG') grade = 2;
+    } else {
+      // 全モード共通の評価キー (b/c/f/- または き/く/す/せ) + PC用の(D/R/G/H)
+      if (key === 'b' || key === 'ｂ' || key === 'き' || code === 'Digit1' || code === 'Numpad1' || code === 'KeyD') grade = 0;
+      else if (key === 'c' || key === 'ｃ' || key === 'く' || code === 'Digit2' || code === 'Numpad2' || code === 'KeyR') grade = 1;
+      else if (key === 'f' || key === 'ｆ' || key === 'す' || code === 'Digit3' || code === 'Numpad3' || code === 'KeyG') grade = 2;
+      else if (key === '-' || key === 'ー' || key === 'せ' || code === 'Digit4' || code === 'Numpad4' || code === 'KeyH' || code === 'Minus') grade = 3;
     }
 
     if (grade !== -1) {
@@ -669,30 +667,38 @@ if (dom.m3TouchArea) {
 // ============================================================
 document.addEventListener('DOMContentLoaded', () => {
   // Settings
-  dom.settingQFormat.addEventListener('change', e => {
-    state.qFormat = e.target.value;
-    if (typeof saveUserSettings === 'function') saveUserSettings();
-  });
-  dom.settingAudioSeq.addEventListener('change', e => {
-    state.audioSeq = e.target.value;
-    if (typeof saveUserSettings === 'function') saveUserSettings();
-  });
+  if (dom.settingQFormat) {
+      dom.settingQFormat.addEventListener('change', e => {
+        state.qFormat = e.target.value;
+        if (typeof saveUserSettings === 'function') saveUserSettings();
+      });
+  }
+  if (dom.settingAudioSeq) {
+      dom.settingAudioSeq.addEventListener('change', e => {
+        state.audioSeq = e.target.value;
+        if (typeof saveUserSettings === 'function') saveUserSettings();
+      });
+  }
 
   // Navigation
-  dom.btnBack.addEventListener('click', () => {
-    if (activePage() === 'page-dashboard' || activePage() === 'page-settings') showPage('page-home');
-  });
-  dom.btnSettings.addEventListener('click', () => showPage('page-settings'));
-  dom.btnDashboard.addEventListener('click', renderDashboard);
-  dom.mistakeFilter.addEventListener('change', renderMistakeTable);
+  if (dom.btnBack) {
+      dom.btnBack.addEventListener('click', () => {
+        if (activePage() === 'page-dashboard' || activePage() === 'page-settings') showPage('page-home');
+      });
+  }
+  if (dom.btnSettings) dom.btnSettings.addEventListener('click', () => showPage('page-settings'));
+  if (dom.btnDashboard) dom.btnDashboard.addEventListener('click', renderDashboard);
+  if (dom.mistakeFilter) dom.mistakeFilter.addEventListener('change', renderMistakeTable);
 
   // Quit (no confirmation dialog — saves are already persisted)
-  dom.btnQuit.addEventListener('click', () => {
-    stopStudyTimer();
-    clearMode3Timers();
-    showPage('page-home');
-    window.startSrsSession();
-  });
+  if (dom.btnQuit) {
+      dom.btnQuit.addEventListener('click', () => {
+        stopStudyTimer();
+        clearMode3Timers();
+        showPage('page-home');
+        window.startSrsSession();
+      });
+  }
 
   // Reset progress
   if (dom.btnResetProgress) {
@@ -713,39 +719,43 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Mode start buttons
-  dom.btnStartMode1.addEventListener('click', () => initStudySession(1));
-  dom.btnStartMode2.addEventListener('click', () => initStudySession(2));
-  dom.btnStartMode3.addEventListener('click', () => initStudySession(3));
+  if (dom.btnStartMode1) dom.btnStartMode1.addEventListener('click', () => initStudySession(1));
+  if (dom.btnStartMode2) dom.btnStartMode2.addEventListener('click', () => initStudySession(2));
+  if (dom.btnStartMode3) dom.btnStartMode3.addEventListener('click', () => initStudySession(3));
 
   // Done page
-  dom.btnDoneHome.addEventListener('click', () => {
-    showPage('page-home');
-    window.startSrsSession();
-  });
+  if (dom.btnDoneHome) {
+      dom.btnDoneHome.addEventListener('click', () => {
+        showPage('page-home');
+        window.startSrsSession();
+      });
+  }
 
-  dom.btnStudyMore.addEventListener('click', () => {
-    state.isInfiniteMode = true;
-    const remainingReviews = state.allReview.slice(DAILY_REVIEW_LIMIT);
-    const remainingNew = state.allNew.slice(DAILY_NEW_LIMIT);
-    state.queue = [...remainingReviews.slice(0, 50), ...remainingNew.slice(0, 50)];
+  if (dom.btnStudyMore) {
+      dom.btnStudyMore.addEventListener('click', () => {
+        state.isInfiniteMode = true;
+        const remainingReviews = state.allReview.slice(DAILY_REVIEW_LIMIT);
+        const remainingNew = state.allNew.slice(DAILY_NEW_LIMIT);
+        state.queue = [...remainingReviews.slice(0, 50), ...remainingNew.slice(0, 50)];
 
-    if (state.queue.length === 0) {
-      alert("全種類の単語をコンプリートしました！");
-      return;
-    }
-    state.allReview = remainingReviews.slice(50);
-    state.allNew = remainingNew.slice(50);
-    initStudySession(state.currentMode);
-  });
+        if (state.queue.length === 0) {
+          alert("全種類の単語をコンプリートしました！");
+          return;
+        }
+        state.allReview = remainingReviews.slice(50);
+        state.allNew = remainingNew.slice(50);
+        initStudySession(state.currentMode);
+      });
+  }
 
   // Undo
-  dom.btnUndo.addEventListener('click', undoLastRating);
+  if (dom.btnUndo) dom.btnUndo.addEventListener('click', undoLastRating);
 
   // Rating buttons
-  dom.btnRateAgain.addEventListener('click', () => handleRating(0));
-  dom.btnRateHard.addEventListener('click', () => handleRating(1));
-  dom.btnRateGood.addEventListener('click', () => handleRating(2));
-  dom.btnRateEasy.addEventListener('click', () => handleRating(3));
+  if (dom.btnRateAgain) dom.btnRateAgain.addEventListener('click', () => handleRating(0));
+  if (dom.btnRateHard) dom.btnRateHard.addEventListener('click', () => handleRating(1));
+  if (dom.btnRateGood) dom.btnRateGood.addEventListener('click', () => handleRating(2));
+  if (dom.btnRateEasy) dom.btnRateEasy.addEventListener('click', () => handleRating(3));
 
   // Mode 3 buttons
   if (dom.btnM3Correct) dom.btnM3Correct.addEventListener('click', () => handleRating(2));
@@ -767,3 +777,61 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 });
+
+// ============================================================
+// スマホ（キーボード入力）用の判定（モード1 ＆ モード2 両対応）
+// ============================================================
+function checkMobileRating(val, inputElement) {
+  if (!val) return;
+  const lastChar = val[val.length - 1].toLowerCase();
+
+  if (state.phase === 'rating') {
+    let grade = -1;
+    // b/き/d/1 対応
+    if (lastChar === 'b' || lastChar === 'ｂ' || lastChar === 'き' || lastChar === 'd' || lastChar === 'ｄ' || lastChar === '1' || lastChar === '１') grade = 0;
+    // c/く/r/2 対応
+    else if (lastChar === 'c' || lastChar === 'ｃ' || lastChar === 'く' || lastChar === 'r' || lastChar === 'ｒ' || lastChar === '2' || lastChar === '２') grade = 1;
+    // f/す/g/3 対応
+    else if (lastChar === 'f' || lastChar === 'ｆ' || lastChar === 'す' || lastChar === 'g' || lastChar === 'ｇ' || lastChar === '3' || lastChar === '３') grade = 2;
+    // -/せ/h/4 対応
+    else if (lastChar === '-' || lastChar === 'ー' || lastChar === 'せ' || lastChar === 'h' || lastChar === 'ｈ' || lastChar === '4' || lastChar === '４') grade = 3;
+
+    if (grade !== -1) {
+      inputElement.value = ''; 
+      handleRating(grade);
+    }
+  } 
+  else if (state.phase === 'question' && state.currentMode === 2) {
+    inputElement.value = '';
+    showRatingPhase(false);
+  }
+  else if (state.phase === 'answered') {
+    inputElement.value = '';
+    state.currentIndex++;
+    requestAnimationFrame(() => {
+      loadCurrentWord();
+    });
+  }
+  else if (state.phase === 'question' && state.currentMode === 1) {
+    if (lastChar === '1' || lastChar === '１' || lastChar === 'b' || lastChar === 'ｂ' || lastChar === 'き' || lastChar === 'd' || lastChar === 'ｄ' || lastChar === '(' || lastChar === '（') {
+      inputElement.value = val.slice(0, -1);
+      showAnswerThenAdvance(0);
+    }
+    else if (lastChar === '4' || lastChar === '４' || lastChar === '-' || lastChar === 'ー' || lastChar === 'せ' || lastChar === 'h' || lastChar === 'ｈ' || lastChar === ')' || lastChar === '）') {
+      inputElement.value = val.slice(0, -1);
+      showAnswerThenAdvance(3);
+    }
+  }
+}
+
+if (dom.mobileKbInput) {
+  dom.mobileKbInput.addEventListener('input', (e) => {
+    checkMobileRating(e.target.value, e.target);
+  });
+}
+
+if (dom.studyInput) {
+  dom.studyInput.addEventListener('input', (e) => {
+    checkMobileRating(e.target.value, e.target);
+  });
+}
